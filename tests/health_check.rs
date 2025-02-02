@@ -1,10 +1,11 @@
 use std::net::TcpListener;
+use zero2prod::startup::create_server;
 
 fn spwan_app() -> String {
     let address = "127.0.0.1";
     let listener = TcpListener::bind(format!("{}:0", address)).expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port(); // port assigned by OS
-    let server = zero2prod_rs::create_server(listener).expect("failed to create server");
+    let server = create_server(listener).expect("failed to create server");
     // tokio::spawn spaws a new task (our server) when a new tokio runtime is launched and shuts
     // down all tasks when the runtime is stopped; tokio::test launches the new runtime
     let _ = tokio::spawn(server);

@@ -1,5 +1,5 @@
 use std::{io::Error, net::TcpListener};
-use zero2prod_rs::create_server;
+use zero2prod::startup::create_server;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
