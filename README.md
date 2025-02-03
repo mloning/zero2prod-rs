@@ -4,6 +4,17 @@ My code from working through [Zero to Production in Rust].
 
 [Zero to Production in Rust]: https://www.zero2prod.com
 
+## Initial setup
+
+- Install Rust
+- Install Docker
+- `brew install libpq` to install `psql`
+- `cargo install sqlx-cli --no-default-features --features rustls,postgres`
+
+## Development
+
+- `bash scripts/init_db.sh` to initialize the database
+
 ## Useful tools
 
 - `cargo clippy` for linting
@@ -14,4 +25,5 @@ My code from working through [Zero to Production in Rust].
 
 ## Notes
 
+- `rustup update` to update the Rust toolchain including `rustc` and `cargo`
 - `tmux new-session -t <existing-session>` to attach to the same, existing session multiple times and switch windows independently, using grouped sessions (see [SO post](https://unix.stackexchange.com/a/24288))
