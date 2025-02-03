@@ -1,11 +1,37 @@
-use sqlx::{Connection, PgPool};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
-use zero2prod::config::read_config;
+use uuid::Uuid;
+use zero2prod::config::{read_config, DatabaseConfig};
 use zero2prod::startup::create_server;
 
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+}
+
+async fn configure_database(config: &DatabaseConfig) -> PgPool {
+    let connection_string = config.connection_string_without_db();
+    let mut connection = PgConnection::connect(&connection_string)
+        .await
+        .expect("failed to connect to database");
+
+    let query = format!(r#"CREATE DATABASE "{}";"#, config.name);
+    connection
+        .execute(query.as_str())
+        .await
+        .expect("failed to create database");
+
+    let connection_string = config.connection_string();
+    let db_pool = PgPool::connect(&connection_string)
+        .await
+        .expect("failed to connect to database");
+
+    sqlx::migrate!("./migrations")
+        .run(&db_pool)
+        .await
+        .expect("failed to run migrations");
+
+    db_pool
 }
 
 async fn spwan_app() -> TestApp {
@@ -14,12 +40,10 @@ async fn spwan_app() -> TestApp {
     let port = listener.local_addr().unwrap().port(); // free port assigned by OS
     let address = format!("http://{}:{}", ip, port);
 
-    let config = read_config().expect("failed to read config");
-    let connection_string = config.database.make_connection_string();
-    let db_pool = PgPool::connect(&connection_string)
-        .await
-        .expect("failed to connect to database");
+    let mut config = read_config().expect("failed to read config");
+    config.database.name = Uuid::new_v4().to_string(); // randomize database name for testing
 
+    let db_pool = configure_database(&config.database).await;
     let server = create_server(listener, db_pool.clone()).expect("failed to create server");
 
     // tokio::spawn spaws a new task (our server) when a new tokio runtime is launched and shuts
@@ -68,13 +92,13 @@ async fn subscribe_returns_200_for_valid_data() {
     assert!(response.status().is_success()); // 200 status
     assert_eq!(200, response.status().as_u16());
 
-    // let subscription = sqlx::query!("SELECT email, name FROM subscriptions",)
-    //     .fetch_one(&app.db_pool)
-    //     .await
-    //     .expect("failed to fetch data from database");
-    //
-    // assert_eq!(subscription.name, "le guin");
-    // assert_eq!(subscription.email, "ursula_le_guin@gmail.com");
+    let subscription = sqlx::query!("SELECT email, name FROM subscriptions",)
+        .fetch_one(&app.db_pool)
+        .await
+        .expect("failed to fetch data from database");
+
+    assert_eq!(subscription.name, "le guin");
+    assert_eq!(subscription.email, "ursula_le_guin@gmail.com");
 }
 
 #[tokio::test]
