@@ -11,7 +11,6 @@ if ! [ -x "$(command -v sqlx)" ]; then
   exit 1
 fi
 
-CONTAINER_NAME="postgres-test"
 DB_USER="${POSTGRES_USER:=postgres}"
 DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
 DB_NAME="${POSTGRES_DB:=newsletter}"
@@ -26,7 +25,6 @@ if [[ -z ${SKIP_DOCKER} ]]; then
   --env POSTGRES_PASSWORD=${DB_PASSWORD} \
   --env POSTGRES_DB=${DB_NAME} \
   --publish "${DB_PORT}":5432 \
-  --name "${CONTAINER_NAME}" \
   --detach \
   "${IMAGE}" \
   postgres -N ${N_CONNECTIONS}
