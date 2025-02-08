@@ -7,7 +7,10 @@ use zero2prod::telemetry::configure_tracing;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // configure telemetry
-    configure_tracing();
+    let level = "info".to_string();
+    let name = "zero2prod".to_string();
+    let sink = std::io::stdout;
+    configure_tracing(name, level, sink);
 
     // read app config
     let config = read_config().expect("failed to read config");

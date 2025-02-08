@@ -2,7 +2,6 @@ use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use sqlx;
 use sqlx::PgPool;
-use tracing::Instrument;
 use uuid::Uuid;
 
 #[derive(serde::Deserialize, Debug)]
@@ -11,21 +10,16 @@ pub struct FormData {
     name: String,
 }
 
-pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    let request_id = Uuid::new_v4();
-    let request_span = tracing::info_span!(
-        "Handling request to save subscription",
-        %request_id,
-        subscriber_name = %form.name,
-        subscriber_email = %form.email
-    );
-    let _request_span_guard = request_span.enter();
-
+#[tracing::instrument(name = "Write subscription to database", skip(form, db_pool))]
+async fn write_subscription_to_db(db_pool: &PgPool, form: &FormData) -> Result<(), sqlx::Error> {
     let id = Uuid::new_v4();
     let subscribed_at = Utc::now();
-
-    let query_span = tracing::info_span!("Saving new subscription to the database", %id);
-    let result = sqlx::query!(
+    tracing::info!(
+        "Writing subscription to the database: {}, {}",
+        id,
+        subscribed_at
+    );
+    sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
         VALUES ($1, $2, $3, $4)
@@ -35,19 +29,28 @@ pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) ->
         form.name,
         subscribed_at
     )
-    .execute(db_pool.get_ref())
-    .instrument(query_span)
-    .await;
+    .execute(db_pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to write new subscription to database: {:?}", e);
+        e
+    })?; // using `?` to return early if error
+    Ok(())
+}
 
-    let mut response = match result {
-        Ok(_) => {
-            tracing::info!("Saved new subscription with id: {}", id);
-            HttpResponse::Ok()
-        }
-        Err(e) => {
-            tracing::error!("Failed to execute query: {:?}", e);
-            HttpResponse::InternalServerError()
-        }
+#[tracing::instrument(
+    name = "Save subscription",
+    skip(form, db_pool),  // skip attaching arguments to context of the span
+    fields(  // manually add to the context of the span
+        request_id = %Uuid::new_v4(),
+        %form.email,
+        %form.name
+    )
+)]
+pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
+    let mut response = match write_subscription_to_db(&db_pool, &form).await {
+        Ok(_) => HttpResponse::Ok(),
+        Err(_) => HttpResponse::InternalServerError(),
     };
     response.finish()
 }

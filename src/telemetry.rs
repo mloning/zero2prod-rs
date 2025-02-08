@@ -2,11 +2,20 @@ use tracing::subscriber::set_global_default;
 use tracing::Subscriber;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
+use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::{filter::EnvFilter, layer::SubscriberExt, Registry};
 
-fn build_tracing_subscriber(name: String, level: String) -> impl Subscriber + Send + Sync {
+// using generic Sink type constrained in the where clause below
+fn build_tracing_subscriber<Sink>(
+    name: String,
+    level: String,
+    sink: Sink,
+) -> impl Subscriber + Send + Sync
+where
+    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
+{
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
-    let formatting_layer = BunyanFormattingLayer::new(name, std::io::stdout);
+    let formatting_layer = BunyanFormattingLayer::new(name, sink);
     Registry::default()
         .with(env_filter)
         .with(JsonStorageLayer)
@@ -20,9 +29,10 @@ fn init_tracing_subscriber(subscriber: impl Subscriber + Send + Sync) {
     set_global_default(subscriber).expect("Failed to set subscriber");
 }
 
-pub fn configure_tracing() {
-    let level = "info".to_string();
-    let name = "zero2prod".to_string();
-    let subscriber = build_tracing_subscriber(name, level);
+pub fn configure_tracing<Sink>(name: String, level: String, sink: Sink)
+where
+    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
+{
+    let subscriber = build_tracing_subscriber(name, level, sink);
     init_tracing_subscriber(subscriber);
 }

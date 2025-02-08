@@ -17,11 +17,12 @@ My code from working through [Zero to Production in Rust].
 
 - `bash ./dev_tools/init_db.sh` to start database server in Docker container (detached) for testing
 - `SKIP_DOCKER=true bash scripts/init_db.sh` to apply migrations if database is already running in container
-- `cargo watch --exec run --ignore *.md` to run app on file changes
+- `cargo watch --exec 'run | bunyan' --ignore *.md` to run app on file changes
 
 ### Run tests
 
 - `cargo watch --exec check --exec test --ignore *.md` to run tests on file changes
+- `TEST_LOG=true cargo test` to see logs from tests, or `TEST_LOG=true cargo test | bunyan` with pretty printing
 
 To manually test API endpoints, use for example:
 
@@ -42,6 +43,7 @@ To manually test API endpoints, use for example:
 - `cargo audit` to check for vulnerabilities
 - `cargo expand` to show result of macro expansions
 - `cargo +nightly udeps` to remove unused dependencies, requires `rustup toolchain install nightly`
+- `cargo install bunyan` for pretty printing logs
 
 ### Commands
 

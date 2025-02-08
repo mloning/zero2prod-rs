@@ -1,8 +1,10 @@
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
 use zero2prod::config::{read_config, DatabaseConfig};
 use zero2prod::startup::create_server;
+use zero2prod::telemetry::configure_tracing;
 
 pub struct TestApp {
     pub address: String,
@@ -34,7 +36,20 @@ async fn configure_database(config: &DatabaseConfig) -> PgPool {
     db_pool
 }
 
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let level = "info".to_string();
+    let name = "zero2prod-test".to_string();
+    if std::env::var("TEST_LOG").is_ok() {
+        configure_tracing(name, level, std::io::stdout);
+    } else {
+        configure_tracing(name, level, std::io::sink);
+    };
+});
+
 async fn spwan_app() -> TestApp {
+    // configure tracing only once; all other calls are skipped
+    Lazy::force(&TRACING);
+
     let ip = "127.0.0.1";
     let listener = TcpListener::bind(format!("{}:0", ip)).expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port(); // free port assigned by OS
