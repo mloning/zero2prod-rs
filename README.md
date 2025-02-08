@@ -17,11 +17,11 @@ My code from working through [Zero to Production in Rust].
 
 - `bash ./dev_tools/init_db.sh` to start database server in Docker container (detached) for testing
 - `SKIP_DOCKER=true bash scripts/init_db.sh` to apply migrations if database is already running in container
-- `cargo watch -x run` to run app on file changes
+- `cargo watch --exec run --ignore *.md` to run app on file changes
 
 ### Run tests
 
-- `cargo watch -x check -x test` to run tests on file changes
+- `cargo watch --exec check --exec test --ignore *.md` to run tests on file changes
 
 To manually test API endpoints, use for example:
 
@@ -41,6 +41,7 @@ To manually test API endpoints, use for example:
 - `cargo watch` for triggering commands automatically on code changes
 - `cargo audit` to check for vulnerabilities
 - `cargo expand` to show result of macro expansions
+- `cargo +nightly udeps` to remove unused dependencies, requires `rustup toolchain install nightly`
 
 ### Commands
 
