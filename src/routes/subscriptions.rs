@@ -42,7 +42,6 @@ async fn write_subscription_to_db(db_pool: &PgPool, form: &FormData) -> Result<(
     name = "Save subscription",
     skip(form, db_pool),  // skip attaching arguments to context of the span
     fields(  // manually add to the context of the span
-        request_id = %Uuid::new_v4(),
         %form.email,
         %form.name
     )
