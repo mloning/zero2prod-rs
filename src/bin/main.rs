@@ -1,3 +1,4 @@
+use env_logger::Env;
 use sqlx::PgPool;
 use std::{io::Error, net::TcpListener};
 use zero2prod::config::read_config;
@@ -5,6 +6,8 @@ use zero2prod::startup::create_server;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     let config = read_config().expect("failed to read config");
 
     let address = format!("127.0.0.1:{}", config.port);

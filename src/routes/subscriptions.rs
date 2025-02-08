@@ -1,16 +1,21 @@
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
+use log;
 use sqlx;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub struct FormData {
     email: String,
     name: String,
 }
 
 pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
+    log::info!(
+        "Handling request to save subscription with form: {:#?} ...",
+        form
+    );
     let id = Uuid::new_v4();
     let subscribed_at = Utc::now();
     let result = sqlx::query!(
@@ -27,9 +32,12 @@ pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) ->
     .await;
 
     let mut response = match result {
-        Ok(_) => HttpResponse::Ok(),
+        Ok(_) => {
+            log::info!("Saved new subscription with id: {}", id);
+            HttpResponse::Ok()
+        }
         Err(e) => {
-            println!("failed to execute query: {}", e);
+            log::error!("Failed to execute query: {:?}", e);
             HttpResponse::InternalServerError()
         }
     };
