@@ -12,10 +12,15 @@ pub struct FormData {
 }
 
 pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    log::info!(
-        "Handling request to save subscription with form: {:#?} ...",
-        form
+    let request_id = Uuid::new_v4();
+    let request_span = tracing::info_span!(
+        "Handling request to save subscription ...",
+        %request_id,
+        subscriber_name = %form.name,
+        subscriber_email = %form.email
     );
+    let _request_span_guard = request_span.enter();
+
     let id = Uuid::new_v4();
     let subscribed_at = Utc::now();
     let result = sqlx::query!(
