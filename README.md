@@ -10,6 +10,7 @@ My code from working through [Zero to Production in Rust].
 - Install Docker
 - `brew install libpq` to install `psql`
 - `cargo install sqlx-cli --no-default-features --features rustls,postgres`
+- `cargo install bunyan` for pretty printing logs
 
 ## Development
 
@@ -27,7 +28,7 @@ My code from working through [Zero to Production in Rust].
 To manually test API endpoints, use for example:
 
 - `curl http://127.0.0.1:8000/health_check`
-- `curl http://127.0.0.1:8000/subscriptions --header "Content-Type: application/x-www-form-urlencoded" --data-urlencode "email=test@test.com" --data-urlencode "name=Tester"`
+- `curl http://127.0.0.1:8000/subscriptions -H "Content-Type: application/x-www-form-urlencoded" -d "email=test@test.com&name=tester"`
 
 ### Inspect database
 
@@ -43,7 +44,6 @@ To manually test API endpoints, use for example:
 - `cargo audit` to check for vulnerabilities
 - `cargo expand` to show result of macro expansions
 - `cargo +nightly udeps` to remove unused dependencies, requires `rustup toolchain install nightly`
-- `cargo install bunyan` for pretty printing logs
 
 ### Commands
 

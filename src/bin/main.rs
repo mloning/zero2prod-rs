@@ -1,3 +1,4 @@
+use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use std::{io::Error, net::TcpListener};
 use zero2prod::config::read_config;
@@ -17,7 +18,7 @@ async fn main() -> Result<(), Error> {
 
     // connect to database
     let connection_string = config.database.connection_string();
-    let db_pool = PgPool::connect(&connection_string)
+    let db_pool = PgPool::connect(connection_string.expose_secret())
         .await
         .expect("failed to connect to database");
 
