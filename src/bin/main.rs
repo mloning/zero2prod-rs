@@ -12,14 +12,16 @@ async fn main() -> Result<(), Error> {
     let name = "zero2prod".to_string();
     let sink = std::io::stdout;
     configure_tracing(name, level, sink);
+    tracing::info!("Starting zero2prod ...");
 
     // read app config
+    tracing::info!("Reading config ...");
     let config = read_config().expect("failed to read config");
 
-    // connect to database
+    // set up database connection, with lazy connection when used for the first time
+    tracing::info!("Setting up database connection ...");
     let connection_string = config.database.connection_string();
-    let db_pool = PgPool::connect(connection_string.expose_secret())
-        .await
+    let db_pool = PgPool::connect_lazy(connection_string.expose_secret())
         .expect("failed to connect to database");
 
     // bind to random port
@@ -27,5 +29,6 @@ async fn main() -> Result<(), Error> {
     let listener = TcpListener::bind(address).expect("failed to bind random port");
 
     // launch server
+    tracing::info!("Launching server ...");
     create_server(listener, db_pool)?.await
 }

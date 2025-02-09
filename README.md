@@ -34,6 +34,12 @@ To manually test API endpoints, use for example:
 
 - `psql -h localhost -p 5432 -U postgres` to connect to database server from command line
 
+### Build Docker image
+
+- `cargo sqlx prepare --workspace`, to work with sqlx offline, together with `SQLX_OFFLINE=true`
+- `docker build --tag zero2prod --file Dockerfile .`
+- `docker run zero2prod`
+
 ## Notes
 
 ### Tools
