@@ -14,7 +14,7 @@ pub struct TestApp {
 
 async fn configure_database(config: &DatabaseConfig) -> PgPool {
     let connection_string = config.connection_string_without_db();
-    let mut connection = PgConnection::connect(connection_string.expose_secret())
+    let mut connection = PgConnection::connect_with(&connection_string)
         .await
         .expect("failed to connect to database");
 
@@ -25,7 +25,7 @@ async fn configure_database(config: &DatabaseConfig) -> PgPool {
         .expect("failed to create database");
 
     let connection_string = config.connection_string();
-    let db_pool = PgPool::connect(connection_string.expose_secret())
+    let db_pool = PgPool::connect_with(connection_string)
         .await
         .expect("failed to connect to database");
 

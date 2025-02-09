@@ -1,4 +1,8 @@
 use secrecy::{ExposeSecret, SecretBox};
+use serde_aux::field_attributes::deserialize_number_from_string;
+use sqlx::postgres::PgConnectOptions;
+use sqlx::postgres::PgSslMode;
+use sqlx::ConnectOptions;
 
 #[derive(serde::Deserialize)]
 pub struct Config {
@@ -9,6 +13,7 @@ pub struct Config {
 #[derive(serde::Deserialize)]
 pub struct AppConfig {
     pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
 }
 
@@ -17,29 +22,30 @@ pub struct DatabaseConfig {
     pub name: String,
     pub username: String,
     pub password: SecretBox<String>,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
+    pub require_ssl: bool,
 }
 
 impl DatabaseConfig {
-    pub fn connection_string(&self) -> SecretBox<String> {
-        SecretBox::new(Box::new(format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username,
-            self.password.expose_secret(),
-            self.host,
-            self.port,
-            self.name
-        )))
+    pub fn connection_string(&self) -> PgConnectOptions {
+        let options = self.connection_string_without_db().database(&self.name);
+        options.log_statements(tracing_log::log::LevelFilter::Trace) // set log level to trace
     }
-    pub fn connection_string_without_db(&self) -> SecretBox<String> {
-        SecretBox::new(Box::new(format!(
-            "postgres://{}:{}@{}:{}",
-            self.username,
-            self.password.expose_secret(),
-            self.host,
-            self.port
-        )))
+
+    pub fn connection_string_without_db(&self) -> PgConnectOptions {
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
+        PgConnectOptions::new()
+            .host(&self.host)
+            .port(self.port)
+            .username(&self.username)
+            .password(self.password.expose_secret())
+            .ssl_mode(ssl_mode)
     }
 }
 
@@ -81,12 +87,16 @@ pub fn read_config() -> Result<Config, config::ConfigError> {
     let base_file = config_directory.join("base.yaml");
     let env_file = config_directory.join(format!("{}.yaml", env.as_str()));
 
-    let base_source = config::File::from(base_file);
+    let base_env_source = config::File::from(base_file);
     let env_source = config::File::from(env_file);
+    let env_var_source = config::Environment::with_prefix("ZERO2PROD_APP")
+        .prefix_separator("_")
+        .separator("__");
 
     let config = config::Config::builder()
-        .add_source(base_source)
+        .add_source(base_env_source)
         .add_source(env_source)
+        .add_source(env_var_source)
         .build()?;
     config.try_deserialize::<Config>()
 }

@@ -1,4 +1,3 @@
-use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use std::{io::Error, net::TcpListener};
 use zero2prod::config::read_config;
@@ -21,8 +20,7 @@ async fn main() -> Result<(), Error> {
     // set up database connection, with lazy connection when used for the first time
     tracing::info!("Setting up database connection ...");
     let connection_string = config.database.connection_string();
-    let db_pool = PgPool::connect_lazy(connection_string.expose_secret())
-        .expect("failed to connect to database");
+    let db_pool = PgPool::connect_lazy_with(connection_string);
 
     // bind to random port
     let address = format!("{}:{}", config.app.host, config.app.port);
