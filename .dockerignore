@@ -1,1 +1,6 @@
+.env
+Dockerfile
+dev_tools/
+migrations/
 target/
+tests/

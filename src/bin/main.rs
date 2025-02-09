@@ -25,7 +25,7 @@ async fn main() -> Result<(), Error> {
         .expect("failed to connect to database");
 
     // bind to random port
-    let address = format!("127.0.0.1:{}", config.port);
+    let address = format!("{}:{}", config.app.host, config.app.port);
     let listener = TcpListener::bind(address).expect("failed to bind random port");
 
     // launch server

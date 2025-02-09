@@ -38,7 +38,7 @@ To manually test API endpoints, use for example:
 
 - `cargo sqlx prepare --workspace`, to work with sqlx offline, together with `SQLX_OFFLINE=true`
 - `docker build --tag zero2prod --file Dockerfile .`
-- `docker run zero2prod`
+- `docker run -p 8000:8000 zero2prod`
 
 ## Notes
 
