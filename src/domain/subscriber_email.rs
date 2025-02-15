@@ -23,7 +23,7 @@ impl SubscriberEmail {
 #[cfg(test)]
 mod tests {
     use super::SubscriberEmail;
-    use claims::{assert_err, assert_ok};
+    use claims::assert_err;
     use fake::{faker::internet::en::SafeEmail, Fake};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
