@@ -50,6 +50,7 @@ To manually test API endpoints, use for example:
 - `cargo audit` to check for vulnerabilities
 - `cargo expand` to show result of macro expansions
 - `cargo +nightly udeps` to remove unused dependencies, requires `rustup toolchain install nightly`
+- `cargo tree` to display dependency tree, useful for debugging incompatible dependencies
 
 ### Commands
 
