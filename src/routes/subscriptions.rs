@@ -12,6 +12,37 @@ pub struct FormData {
     name: String,
 }
 
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(value: FormData) -> Result<Self, Self::Error> {
+        let name = SubscriberName::parse(value.name)?;
+        let email = SubscriberEmail::parse(value.email)?;
+        let subscriber = Self { email, name };
+        Ok(subscriber)
+    }
+}
+
+#[tracing::instrument(
+    name = "Save subscription",
+    skip(form, db_pool),  // skip attaching arguments to context of the span
+    fields(  // manually add to the context of the span
+        %form.email,
+        %form.name
+    )
+)]
+pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
+    let subscriber = match NewSubscriber::try_from(form.0) {
+        Ok(subscriber) => subscriber,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+    let mut response = match write_subscriber_to_db(&db_pool, &subscriber).await {
+        Ok(_) => HttpResponse::Ok(),
+        Err(_) => HttpResponse::InternalServerError(),
+    };
+    response.finish()
+}
+
 #[tracing::instrument(name = "Write subscriber to database", skip(subscriber, db_pool))]
 async fn write_subscriber_to_db(
     db_pool: &PgPool,
@@ -41,29 +72,4 @@ async fn write_subscriber_to_db(
         e
     })?; // using `?` to return early if error
     Ok(())
-}
-
-#[tracing::instrument(
-    name = "Save subscription",
-    skip(form, db_pool),  // skip attaching arguments to context of the span
-    fields(  // manually add to the context of the span
-        %form.email,
-        %form.name
-    )
-)]
-pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    let name = match SubscriberName::parse(form.0.name) {
-        Ok(name) => name,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
-    let email = match SubscriberEmail::parse(form.0.email) {
-        Ok(email) => email,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
-    let subscriber = NewSubscriber { email, name };
-    let mut response = match write_subscriber_to_db(&db_pool, &subscriber).await {
-        Ok(_) => HttpResponse::Ok(),
-        Err(_) => HttpResponse::InternalServerError(),
-    };
-    response.finish()
 }
