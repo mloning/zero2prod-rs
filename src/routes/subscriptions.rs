@@ -4,14 +4,19 @@ use sqlx;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+
 #[derive(serde::Deserialize, Debug)]
 pub struct FormData {
     email: String,
     name: String,
 }
 
-#[tracing::instrument(name = "Write subscription to database", skip(form, db_pool))]
-async fn write_subscription_to_db(db_pool: &PgPool, form: &FormData) -> Result<(), sqlx::Error> {
+#[tracing::instrument(name = "Write subscriber to database", skip(subscriber, db_pool))]
+async fn write_subscriber_to_db(
+    db_pool: &PgPool,
+    subscriber: &NewSubscriber,
+) -> Result<(), sqlx::Error> {
     let id = Uuid::new_v4();
     let subscribed_at = Utc::now();
     tracing::info!(
@@ -25,8 +30,8 @@ async fn write_subscription_to_db(db_pool: &PgPool, form: &FormData) -> Result<(
         VALUES ($1, $2, $3, $4)
         "#,
         id,
-        form.email,
-        form.name,
+        subscriber.email.as_ref(),
+        subscriber.name.as_ref(),
         subscribed_at
     )
     .execute(db_pool)
@@ -47,7 +52,16 @@ async fn write_subscription_to_db(db_pool: &PgPool, form: &FormData) -> Result<(
     )
 )]
 pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
-    let mut response = match write_subscription_to_db(&db_pool, &form).await {
+    let name = match SubscriberName::parse(form.0.name) {
+        Ok(name) => name,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+    let email = match SubscriberEmail::parse(form.0.email) {
+        Ok(email) => email,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+    let subscriber = NewSubscriber { email, name };
+    let mut response = match write_subscriber_to_db(&db_pool, &subscriber).await {
         Ok(_) => HttpResponse::Ok(),
         Err(_) => HttpResponse::InternalServerError(),
     };
