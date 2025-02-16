@@ -19,7 +19,8 @@ My code from working through [Zero to Production in Rust].
 - `bash scripts/init_db.sh` to start database server in Docker container (detached) for testing
 - `SKIP_DOCKER=true bash scripts/init_db.sh` to apply migrations to database running in container
 - `psql -h localhost -p 5432 -U postgres` to connect to database server from command line
-- `cargo watch -x check -x test` to run tests on file changes
+- `cargo run | bunyan` to run app with pretty-printed logs
+- `cargo watch --exec 'run | bunyan' --ignore *.md` to run app on file changes
 
 ### Run tests
 
