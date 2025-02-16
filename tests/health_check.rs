@@ -1,8 +1,10 @@
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
 use zero2prod::config::{read_config, DatabaseConfig};
 use zero2prod::startup::create_server;
+use zero2prod::telemetry::configure_tracing;
 
 pub struct TestApp {
     pub address: String,
@@ -11,7 +13,7 @@ pub struct TestApp {
 
 async fn configure_database(config: &DatabaseConfig) -> PgPool {
     let connection_string = config.connection_string_without_db();
-    let mut connection = PgConnection::connect(&connection_string)
+    let mut connection = PgConnection::connect_with(&connection_string)
         .await
         .expect("failed to connect to database");
 
@@ -22,7 +24,7 @@ async fn configure_database(config: &DatabaseConfig) -> PgPool {
         .expect("failed to create database");
 
     let connection_string = config.connection_string();
-    let db_pool = PgPool::connect(&connection_string)
+    let db_pool = PgPool::connect_with(connection_string)
         .await
         .expect("failed to connect to database");
 
@@ -34,7 +36,20 @@ async fn configure_database(config: &DatabaseConfig) -> PgPool {
     db_pool
 }
 
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let level = "info".to_string();
+    let name = "zero2prod-test".to_string();
+    if std::env::var("TEST_LOG").is_ok() {
+        configure_tracing(name, level, std::io::stdout);
+    } else {
+        configure_tracing(name, level, std::io::sink);
+    };
+});
+
 async fn spwan_app() -> TestApp {
+    // configure tracing only once; all other calls are skipped
+    Lazy::force(&TRACING);
+
     let ip = "127.0.0.1";
     let listener = TcpListener::bind(format!("{}:0", ip)).expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port(); // free port assigned by OS
@@ -129,6 +144,35 @@ async fn subscribe_returns_400_for_missing_data() {
             response.status().as_u16(),
             "did not fail when: {}",
             error_message
+        );
+    }
+}
+
+#[tokio::test]
+async fn subscribe_returns_a_400_for_invalid_data() {
+    let app = spwan_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
+        ("name=Ursula&email=", "empty email"),
+        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+    ];
+    for (body, description) in test_cases {
+        // act
+        let response = client
+            .post(format!("{}/subscriptions", app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request");
+
+        // assert, check response
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "did not fail when: {}",
+            description
         );
     }
 }
