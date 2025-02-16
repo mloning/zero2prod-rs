@@ -3,6 +3,7 @@ use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
 use zero2prod::config::{read_config, DatabaseConfig};
+use zero2prod::email_client::EmailClient;
 use zero2prod::startup::create_server;
 use zero2prod::telemetry::configure_tracing;
 
@@ -50,16 +51,29 @@ async fn spwan_app() -> TestApp {
     // configure tracing only once; all other calls are skipped
     Lazy::force(&TRACING);
 
+    // read config
+    let mut config = read_config().expect("failed to read config");
+
+    // set up email client
+    let sender_email = config
+        .email_client
+        .parse_sender_email()
+        .expect("could not parse sender email");
+    let email_client = EmailClient::new(config.email_client.base_url, sender_email);
+
+    // bind to random port
     let ip = "127.0.0.1";
     let listener = TcpListener::bind(format!("{}:0", ip)).expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port(); // free port assigned by OS
     let address = format!("http://{}:{}", ip, port);
 
-    let mut config = read_config().expect("failed to read config");
+    // set up database connection
     config.database.name = Uuid::new_v4().to_string(); // randomize database name for testing
-
     let db_pool = configure_database(&config.database).await;
-    let server = create_server(listener, db_pool.clone()).expect("failed to create server");
+
+    // create server
+    let server =
+        create_server(listener, db_pool.clone(), email_client).expect("failed to create server");
 
     // tokio::spawn spaws a new task (our server) when a new tokio runtime is launched and shuts
     // down all tasks when the runtime is stopped; tokio::test launches the new runtime

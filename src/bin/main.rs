@@ -1,6 +1,7 @@
 use sqlx::PgPool;
 use std::{io::Error, net::TcpListener};
 use zero2prod::config::read_config;
+use zero2prod::email_client::EmailClient;
 use zero2prod::startup::create_server;
 use zero2prod::telemetry::configure_tracing;
 
@@ -17,6 +18,13 @@ async fn main() -> Result<(), Error> {
     tracing::info!("Reading config ...");
     let config = read_config().expect("failed to read config");
 
+    // set up email client
+    let sender_email = config
+        .email_client
+        .parse_sender_email()
+        .expect("could not parse sender email");
+    let email_client = EmailClient::new(config.email_client.base_url, sender_email);
+
     // set up database connection, with lazy connection when used for the first time
     tracing::info!("Setting up database connection ...");
     let connection_string = config.database.connection_string();
@@ -28,5 +36,5 @@ async fn main() -> Result<(), Error> {
 
     // launch server
     tracing::info!("Launching server ...");
-    create_server(listener, db_pool)?.await
+    create_server(listener, db_pool, email_client)?.await
 }
