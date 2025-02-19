@@ -51,6 +51,7 @@ async fn spwan_app() -> TestApp {
     Lazy::force(&TRACING);
 
     let ip = "127.0.0.1";
+    // setting port to 0 means the OS will assign a free port
     let listener = TcpListener::bind(format!("{}:0", ip)).expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port(); // free port assigned by OS
     let address = format!("http://{}:{}", ip, port);
