@@ -2,3 +2,6 @@ app:
   host: 0.0.0.0
 database:
   require_ssl: true
+email_client:
+  base_url: https://api.postmarkapp.com # from Postmark's API documentation
+  sender_email: todo@todo.com # sender email you authorised on Postmark

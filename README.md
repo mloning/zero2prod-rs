@@ -16,8 +16,10 @@ My code from working through [Zero to Production in Rust].
 
 ### Run app
 
-- `bash ./dev_tools/init_db.sh` to start database server in Docker container (detached) for testing
-- `SKIP_DOCKER=true bash scripts/init_db.sh` to apply migrations if database is already running in container
+- `bash scripts/init_db.sh` to start database server in Docker container (detached) for testing
+- `SKIP_DOCKER=true bash scripts/init_db.sh` to apply migrations to database running in container
+- `psql -h localhost -p 5432 -U postgres` to connect to database server from command line
+- `cargo run | bunyan` to run app with pretty-printed logs
 - `cargo watch --exec 'run | bunyan' --ignore *.md` to run app on file changes
 
 ### Run tests
@@ -27,8 +29,8 @@ My code from working through [Zero to Production in Rust].
 
 To manually test API endpoints, use for example:
 
-- `curl http://127.0.0.1:8000/health_check`
-- `curl http://127.0.0.1:8000/subscriptions -H "Content-Type: application/x-www-form-urlencoded" -d "email=test@test.com&name=tester"`
+- `curl -v http://127.0.0.1:8000/health_check`
+- `curl -v http://127.0.0.1:8000/subscriptions -H "Content-Type: application/x-www-form-urlencoded" -d "email=test@test.com&name=tester"`
 
 ### Inspect database
 
