@@ -12,10 +12,12 @@ pub struct Config {
     pub app: AppConfig,
     pub email_client: EmailClientConfig,
 }
+
 #[derive(serde::Deserialize)]
 pub struct EmailClientConfig {
     pub base_url: String,
     pub sender_email: String,
+    pub auth_token: SecretBox<String>,
 }
 
 impl EmailClientConfig {

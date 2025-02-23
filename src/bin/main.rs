@@ -23,7 +23,11 @@ async fn main() -> Result<(), Error> {
         .email_client
         .parse_sender_email()
         .expect("could not parse sender email");
-    let email_client = EmailClient::new(config.email_client.base_url, sender_email);
+    let email_client = EmailClient::new(
+        config.email_client.base_url,
+        sender_email,
+        config.email_client.auth_token,
+    );
 
     // set up database connection, with lazy connection when used for the first time
     tracing::info!("Setting up database connection ...");

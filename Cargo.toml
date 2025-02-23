@@ -46,3 +46,5 @@ quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 fake = "2.9"
 claims = "0.8.0"
+tokio = { version = "1", features = ["macros", "rt"] }
+wiremock = "0.6.2"
