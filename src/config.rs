@@ -18,11 +18,16 @@ pub struct EmailClientConfig {
     pub base_url: String,
     pub sender_email: String,
     pub auth_token: SecretBox<String>,
+    pub timeout_ms: u64,
 }
 
 impl EmailClientConfig {
     pub fn parse_sender_email(&self) -> Result<SubscriberEmail, String> {
         SubscriberEmail::parse(self.sender_email.clone())
+    }
+
+    pub fn parse_timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_ms)
     }
 }
 

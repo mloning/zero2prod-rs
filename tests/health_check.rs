@@ -55,6 +55,7 @@ async fn spwan_app() -> TestApp {
     let mut config = read_config().expect("failed to read config");
 
     // set up email client
+    let timeout = config.email_client.parse_timeout();
     let sender_email = config
         .email_client
         .parse_sender_email()
@@ -62,6 +63,7 @@ async fn spwan_app() -> TestApp {
     let email_client = EmailClient::new(
         config.email_client.base_url,
         sender_email,
+        timeout,
         config.email_client.auth_token,
     );
 
