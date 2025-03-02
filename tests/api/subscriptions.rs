@@ -4,17 +4,10 @@ use crate::helpers::spwan_app;
 async fn subscribe_returns_200_for_valid_data() {
     // arange, start app and create a client
     let app = spwan_app().await;
-    let client = reqwest::Client::new();
 
     // act, send request
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
-    let response = client
-        .post(format!("{}/subscriptions", app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
+    let response = app.post_subscription(body.into()).await;
 
     // assert, check response
     assert!(response.status().is_success()); // 200 status
@@ -33,22 +26,16 @@ async fn subscribe_returns_200_for_valid_data() {
 async fn subscribe_returns_400_for_missing_data() {
     // arange, start app and create a client
     let app = spwan_app().await;
-    let client = reqwest::Client::new();
+
     // TODO move test cases into parametrized fixture, using rtest crate
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
         ("email=ursula_le_guin%40gmail.com", "missing the name"),
         ("", "missing both name and email"),
     ];
-    for (invalid_body, error_message) in test_cases {
+    for (body, error_message) in test_cases {
         // act, send request
-        let response = client
-            .post(format!("{}/subscriptions", app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_body)
-            .send()
-            .await
-            .expect("Failed to execute request");
+        let response = app.post_subscription(body.into()).await;
 
         // assert, check response
         assert!(response.status().is_client_error()); // 200 status
@@ -64,7 +51,6 @@ async fn subscribe_returns_400_for_missing_data() {
 #[tokio::test]
 async fn subscribe_returns_a_400_for_invalid_data() {
     let app = spwan_app().await;
-    let client = reqwest::Client::new();
     let test_cases = vec![
         ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
         ("name=Ursula&email=", "empty email"),
@@ -72,13 +58,7 @@ async fn subscribe_returns_a_400_for_invalid_data() {
     ];
     for (body, description) in test_cases {
         // act
-        let response = client
-            .post(format!("{}/subscriptions", app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(body)
-            .send()
-            .await
-            .expect("Failed to execute request");
+        let response = app.post_subscription(body.into()).await;
 
         // assert, check response
         assert_eq!(

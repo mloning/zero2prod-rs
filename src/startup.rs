@@ -56,9 +56,9 @@ impl Application {
         // bind to random port
         let address = format!("{}:{}", config.app.host, config.app.port);
         let listener = TcpListener::bind(address)?;
-        let assigned_address = listener.local_addr().unwrap();
-        let port = assigned_address.port();
-        let ip = assigned_address.ip().to_string();
+        let local_addr = listener.local_addr().unwrap();
+        let port = local_addr.port();
+        let ip = local_addr.ip().to_string();
 
         // launch server
         tracing::info!("Launching server ...");

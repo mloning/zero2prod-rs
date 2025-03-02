@@ -10,6 +10,19 @@ pub struct TestApp {
     pub db_pool: PgPool,
 }
 
+impl TestApp {
+    pub async fn post_subscription(&self, body: String) -> reqwest::Response {
+        let client = reqwest::Client::new();
+        client
+            .post(format!("{}/subscriptions", self.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+}
+
 /// Configure database for testing
 async fn configure_db(config: &DatabaseConfig) -> PgPool {
     tracing::info!("Configuring database for testing ...");
