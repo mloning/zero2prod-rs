@@ -10,7 +10,7 @@ async fn main() -> Result<(), Error> {
     let name = "zero2prod".to_string();
     let sink = std::io::stdout;
     configure_tracing(name, level, sink);
-    tracing::info!("Starting zero2prod app ...");
+    tracing::info!("Starting app ...");
 
     // read app config
     let config = read_config().expect("failed to read config");

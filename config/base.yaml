@@ -1,6 +1,6 @@
 app:
   port: 8000
-database:
+db:
   name: newsletter
   host: 127.0.0.1
   port: 5432

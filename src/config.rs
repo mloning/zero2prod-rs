@@ -8,7 +8,7 @@ use crate::domain::SubscriberEmail;
 
 #[derive(serde::Deserialize)]
 pub struct Config {
-    pub database: DatabaseConfig,
+    pub db: DatabaseConfig,
     pub app: AppConfig,
     pub email_client: EmailClientConfig,
 }

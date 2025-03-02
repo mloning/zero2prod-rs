@@ -16,6 +16,7 @@ pub fn create_db_connection_pool(config: &DatabaseConfig) -> PgPool {
 
 pub struct Application {
     server: Server,
+    ip: String,
     port: u16,
 }
 
@@ -50,25 +51,28 @@ impl Application {
         );
 
         // set up database connection, with lazy connection when used for the first time
-        let db_pool = create_db_connection_pool(&config.database);
+        let db_pool = create_db_connection_pool(&config.db);
 
         // bind to random port
         let address = format!("{}:{}", config.app.host, config.app.port);
         let listener = TcpListener::bind(address)?;
-        let port = listener.local_addr().unwrap().port();
+        let assigned_address = listener.local_addr().unwrap();
+        let port = assigned_address.port();
+        let ip = assigned_address.ip().to_string();
 
         // launch server
         tracing::info!("Launching server ...");
         let server = run_server(listener, db_pool, email_client)?;
-        Ok(Self { server, port })
+        Ok(Self { server, ip, port })
     }
 
     pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
+        tracing::info!("App running at: {} ...", self.get_address());
         self.server.await
     }
 
-    pub fn get_port(&self) -> u16 {
-        self.port
+    pub fn get_address(&self) -> String {
+        format!("http://{}:{}", self.ip, self.port)
     }
 }
 

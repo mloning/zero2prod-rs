@@ -11,7 +11,7 @@ pub struct TestApp {
 }
 
 /// Configure database for testing
-async fn configure_database(config: &DatabaseConfig) -> PgPool {
+async fn configure_db(config: &DatabaseConfig) -> PgPool {
     tracing::info!("Configuring database for testing ...");
     let connection_string = config.connection_string_without_db();
     let mut connection = PgConnection::connect_with(&connection_string)
@@ -55,26 +55,24 @@ pub async fn spwan_app() -> TestApp {
     // read config
     let mut config = read_config().expect("failed to read config");
     tracing::info!("Randomizing config for testing ...");
-    config.database.name = Uuid::new_v4().to_string(); // randomize database name for testing
+    config.db.name = Uuid::new_v4().to_string(); // randomize database name for testing
     config.app.port = 0; // use random, system assigned port
 
     // configure database
-    configure_database(&config.database).await;
+    configure_db(&config.db).await;
 
     // build server
     let app = Application::launch(&config)
         .await
         .expect("failed to build server");
-    let port = app.get_port();
-    let address = format!("http://{}:{}", config.app.host, port);
-    tracing::info!("Launching app at: {}", address);
+    let address = app.get_address();
 
     // tokio::spawn spaws a new task (our server) when a new tokio runtime is launched and shuts
     // down all tasks when the runtime is stopped; tokio::test launches the new runtime
+    tracing::info!("Launching test app at: {} ...", address);
     #[allow(clippy::let_underscore_future)]
     let _ = tokio::spawn(app.run_until_stopped());
 
-    let db_pool = create_db_connection_pool(&config.database);
-
+    let db_pool = create_db_connection_pool(&config.db);
     TestApp { db_pool, address }
 }
