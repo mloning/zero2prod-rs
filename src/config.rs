@@ -97,6 +97,7 @@ impl TryFrom<String> for Env {
 }
 
 pub fn read_config() -> Result<Config, config::ConfigError> {
+    tracing::info!("Reading config ...");
     let directory = std::env::current_dir().expect("Failed to determine current directory");
     let config_directory = directory.join("config");
 

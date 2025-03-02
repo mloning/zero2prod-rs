@@ -32,7 +32,7 @@ fi
 
 until psql --host "${DB_HOST}" --username "${DB_USER}" --port "${DB_PORT}" --dbname "postgres" --command '\q'; do
   >&2 echo "Postgres is still unavailable, waiting ..."
-  sleep 1
+  sleep 2
 done
 
 DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}

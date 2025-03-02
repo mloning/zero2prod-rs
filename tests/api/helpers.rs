@@ -1,10 +1,8 @@
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use std::net::TcpListener;
 use uuid::Uuid;
 use zero2prod::config::{read_config, DatabaseConfig};
-use zero2prod::email_client::EmailClient;
-use zero2prod::startup::create_server;
+use zero2prod::startup::{create_db_connection_pool, Application};
 use zero2prod::telemetry::configure_tracing;
 
 pub struct TestApp {
@@ -12,7 +10,9 @@ pub struct TestApp {
     pub db_pool: PgPool,
 }
 
+/// Configure database for testing
 async fn configure_database(config: &DatabaseConfig) -> PgPool {
+    tracing::info!("Configuring database for testing ...");
     let connection_string = config.connection_string_without_db();
     let mut connection = PgConnection::connect_with(&connection_string)
         .await
@@ -47,44 +47,34 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     };
 });
 
+/// spawn app for testing
 pub async fn spwan_app() -> TestApp {
     // configure tracing only once; all other calls are skipped
     Lazy::force(&TRACING);
 
     // read config
     let mut config = read_config().expect("failed to read config");
-
-    // set up email client
-    let timeout = config.email_client.parse_timeout();
-    let sender_email = config
-        .email_client
-        .parse_sender_email()
-        .expect("could not parse sender email");
-    let email_client = EmailClient::new(
-        config.email_client.base_url,
-        sender_email,
-        timeout,
-        config.email_client.auth_token,
-    );
-
-    // bind to random port
-    let ip = "127.0.0.1";
-    // setting port to 0 means the OS will assign a free port
-    let listener = TcpListener::bind(format!("{}:0", ip)).expect("failed to bind random port");
-    let port = listener.local_addr().unwrap().port(); // free port assigned by OS
-    let address = format!("http://{}:{}", ip, port);
-
-    // set up database connection
+    tracing::info!("Randomizing config for testing ...");
     config.database.name = Uuid::new_v4().to_string(); // randomize database name for testing
-    let db_pool = configure_database(&config.database).await;
+    config.app.port = 0; // use random, system assigned port
 
-    // create server
-    let server =
-        create_server(listener, db_pool.clone(), email_client).expect("failed to create server");
+    // configure database
+    configure_database(&config.database).await;
+
+    // build server
+    let app = Application::launch(&config)
+        .await
+        .expect("failed to build server");
+    let port = app.get_port();
+    let address = format!("http://{}:{}", config.app.host, port);
+    tracing::info!("Launching app at: {}", address);
 
     // tokio::spawn spaws a new task (our server) when a new tokio runtime is launched and shuts
     // down all tasks when the runtime is stopped; tokio::test launches the new runtime
-    let _ = tokio::spawn(server);
+    #[allow(clippy::let_underscore_future)]
+    let _ = tokio::spawn(app.run_until_stopped());
 
-    TestApp { address, db_pool }
+    let db_pool = create_db_connection_pool(&config.database);
+
+    TestApp { db_pool, address }
 }
