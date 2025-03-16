@@ -57,13 +57,13 @@ async fn write_subscriber_to_db(
     );
     sqlx::query!(
         r#"
-        INSERT INTO subscriptions (id, email, name, subscribed_at)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO subscriptions (id, email, name, subscribed_at, status)
+        VALUES ($1, $2, $3, $4, 'confirmed')
         "#,
         id,
         subscriber.email.as_ref(),
         subscriber.name.as_ref(),
-        subscribed_at
+        subscribed_at,
     )
     .execute(db_pool)
     .await

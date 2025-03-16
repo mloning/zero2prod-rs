@@ -34,7 +34,7 @@ To manually test API endpoints, use for example:
 
 ### Inspect database
 
-- `psql -h localhost -p 5432 -U postgres` to connect to database server from command line
+- `psql -h localhost -p 5432 -U postgres` to connect to the database server from command line
 
 ### Build Docker image
 
