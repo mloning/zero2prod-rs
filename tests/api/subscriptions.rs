@@ -1,4 +1,4 @@
-use crate::helpers::spwan_app;
+use crate::helpers::{find_links, spwan_app};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
 
@@ -96,4 +96,30 @@ async fn subscribe_sends_confirmation_email_for_valid_data() {
 
     // assert, check response
     // mock asserts before drop
+}
+
+#[tokio::test]
+async fn subscribe_sends_confirmation_email_with_a_link() {
+    // arange, start app and create a client
+    let app = spwan_app().await;
+
+    let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
+    // act, send request
+    app.post_subscription(body.into()).await;
+
+    // assert, check response
+    let request = &app.email_server.received_requests().await.unwrap()[0];
+    let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
+    let html_links = find_links(body["HtmlBody"].as_str().unwrap());
+    let text_links = find_links(body["TextBody"].as_str().unwrap());
+    assert_eq!(html_links.len(), 1);
+    assert_eq!(text_links.len(), 1);
+    assert_eq!(html_links[0].as_str(), text_links[0].as_str());
 }

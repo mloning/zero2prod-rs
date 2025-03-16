@@ -99,3 +99,10 @@ pub async fn spwan_app() -> TestApp {
         email_server,
     }
 }
+
+pub fn find_links(text: &str) -> Vec<linkify::Link> {
+    linkify::LinkFinder::new()
+        .links(text)
+        .filter(|l| *l.kind() == linkify::LinkKind::Url)
+        .collect()
+}

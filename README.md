@@ -32,6 +32,15 @@ To manually test API endpoints, use for example:
 - `curl -v http://127.0.0.1:8000/health_check`
 - `curl -v http://127.0.0.1:8000/subscriptions -H "Content-Type: application/x-www-form-urlencoded" -d "email=test@test.com&name=tester"`
 
+#### Known issues
+
+If you see the following error, you can increase the maximum number of open file handles:
+
+> thread 'actix-server worker ...' panicked at ... called `Result::unwrap()` on an `Err` value: Os { code: 24, kind: Uncategorized, message: "Too many open files" }
+
+- `ulimit -Sn` to see the current soft limit
+- `ulimit -Sn <value>` to set a new limit for the current Shell session, e.g. `ulimit -Sn 1000`
+
 ### Inspect database
 
 - `psql -h localhost -p 5432 -U postgres` to connect to the database server from command line
