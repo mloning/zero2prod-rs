@@ -1,9 +1,17 @@
 use crate::helpers::spwan_app;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, ResponseTemplate};
 
 #[tokio::test]
 async fn subscribe_returns_200_for_valid_data() {
     // arange, start app and create a client
     let app = spwan_app().await;
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
 
     // act, send request
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
@@ -68,4 +76,24 @@ async fn subscribe_returns_a_400_for_invalid_data() {
             description
         );
     }
+}
+
+#[tokio::test]
+async fn subscribe_sends_confirmation_email_for_valid_data() {
+    // arange, start app and create a client
+    let app = spwan_app().await;
+
+    let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
+    // act, send request
+    app.post_subscription(body.into()).await;
+
+    // assert, check response
+    // mock asserts before drop
 }

@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
+use wiremock::MockServer;
 use zero2prod::config::{read_config, DatabaseConfig};
 use zero2prod::startup::{create_db_connection_pool, Application};
 use zero2prod::telemetry::configure_tracing;
@@ -8,6 +9,7 @@ use zero2prod::telemetry::configure_tracing;
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+    pub email_server: MockServer,
 }
 
 impl TestApp {
@@ -65,11 +67,15 @@ pub async fn spwan_app() -> TestApp {
     // configure tracing only once; all other calls are skipped
     Lazy::force(&TRACING);
 
+    // build email server
+    let email_server = MockServer::start().await;
+
     // read config
     let mut config = read_config().expect("failed to read config");
     tracing::info!("Randomizing config for testing ...");
     config.db.name = Uuid::new_v4().to_string(); // randomize database name for testing
     config.app.port = 0; // use random, system assigned port
+    config.email_client.base_url = email_server.uri();
 
     // configure database
     configure_db(&config.db).await;
@@ -87,5 +93,9 @@ pub async fn spwan_app() -> TestApp {
     let _ = tokio::spawn(app.run_until_stopped());
 
     let db_pool = create_db_connection_pool(&config.db);
-    TestApp { db_pool, address }
+    TestApp {
+        db_pool,
+        address,
+        email_server,
+    }
 }

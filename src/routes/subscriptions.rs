@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::email_client::EmailClient;
 
 #[derive(serde::Deserialize, Debug)]
 pub struct FormData {
@@ -31,16 +32,30 @@ impl TryFrom<FormData> for NewSubscriber {
         %form.name
     )
 )]
-pub async fn subscribe(form: web::Form<FormData>, db_pool: web::Data<PgPool>) -> HttpResponse {
+pub async fn subscribe(
+    form: web::Form<FormData>,
+    db_pool: web::Data<PgPool>,
+    email_client: web::Data<EmailClient>,
+) -> HttpResponse {
     let subscriber = match NewSubscriber::try_from(form.0) {
         Ok(subscriber) => subscriber,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
-    let mut response = match write_subscriber_to_db(&db_pool, &subscriber).await {
-        Ok(_) => HttpResponse::Ok(),
-        Err(_) => HttpResponse::InternalServerError(),
+    if write_subscriber_to_db(&db_pool, &subscriber).await.is_err() {
+        return HttpResponse::InternalServerError().finish();
     };
-    response.finish()
+
+    let subject = "Welcome!";
+    let html_body = "Welcome!";
+    let text_body = "Welcome!";
+    if email_client
+        .send_email(subscriber.email, subject, html_body, text_body)
+        .await
+        .is_err()
+    {
+        return HttpResponse::InternalServerError().finish();
+    };
+    HttpResponse::Ok().finish()
 }
 
 #[tracing::instrument(name = "Write subscriber to database", skip(subscriber, db_pool))]
